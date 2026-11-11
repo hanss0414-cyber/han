@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="방문자 댓글을 남기는 방명록 페이지">
+<title>댓글 남기기 | 한승수</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0c10;--panel:#151820;--line:#2a303b;--text:#f5f7fa;--muted:#a0a7b4;--accent:#b7ff3c}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 0%,#202a16 0,transparent 48%),var(--bg);color:var(--text);font-family:Inter,"Noto Sans KR",Arial,sans-serif;display:grid;place-items:center;padding:28px}
+main{width:min(100%,680px)}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px}.logo{font-weight:900;font-size:24px;color:var(--text);text-decoration:none}.logo span{color:var(--accent)}.back{color:var(--muted);text-decoration:none;font-size:14px}.back:hover{color:var(--accent)}
+.card{background:rgba(21,24,32,.94);border:1px solid var(--line);border-radius:18px;padding:clamp(26px,6vw,52px);box-shadow:0 24px 80px #0006}.eyebrow{font-size:11px;letter-spacing:3px;font-weight:800;color:var(--accent)}h1{font-size:clamp(36px,7vw,58px);line-height:1.12;letter-spacing:-2px;margin:14px 0}h1 span{color:var(--accent)}.desc{color:var(--muted);line-height:1.7;margin-bottom:30px}
+label{display:block;font-size:14px;font-weight:700;margin-bottom:10px}textarea{display:block;width:100%;min-height:170px;resize:vertical;background:#0d1016;border:1px solid var(--line);border-radius:10px;padding:16px;color:var(--text);font:inherit;line-height:1.6;outline:none}textarea:focus{border-color:var(--accent)}textarea::placeholder{color:#687181}.form-bottom{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:12px}.count{font-size:12px;color:var(--muted)}button{border:0;border-radius:8px;padding:13px 23px;background:var(--accent);color:#11150a;font-size:14px;font-weight:900;cursor:pointer}button:disabled{opacity:.55;cursor:wait}#status{min-height:26px;margin:18px 0 0;color:var(--muted);font-size:13px;line-height:1.6}#status.error{color:#ff9292}#status.success{color:var(--accent)}.privacy{border-top:1px solid var(--line);margin-top:26px;padding-top:18px;color:#77808e;font-size:12px;line-height:1.7}.honeypot{position:absolute;left:-10000px;width:1px;height:1px;opacity:0}iframe{display:none;width:0;height:0;border:0}
+@media(max-width:480px){body{padding:16px}.form-bottom{align-items:stretch;flex-direction:column}button{width:100%}.top{margin-bottom:18px}}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><a class="logo" href="index.html">HS<span>.</span></a><a class="back" href="index.html">← 포트폴리오로</a></div>
+  <section class="card">
+    <p class="eyebrow">GUESTBOOK · COMMENTS</p>
+    <h1>댓글을<br><span>남겨주세요.</span></h1>
+    <p class="desc">방문해 주셔서 감사합니다. 응원, 의견, 질문을 자유롭게 작성해 주세요. 남겨주신 댓글은 운영자의 Google 스프레드시트에 전달됩니다.</p>
+    <form id="comment-form" action="https://script.google.com/macros/s/AKfycbznfNXZSXNal_AM_hLYeoSrCIwGdum6QNQddaZEwBpfF0cGAb5pFT0SFY6s4JBNnU026w/exec" method="POST" target="comment-frame">
+      <label for="message">내 댓글</label>
+      <textarea id="message" name="message" maxlength="500" placeholder="이곳에 댓글을 입력하세요." required></textarea>
+      <input class="honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <div class="form-bottom"><span class="count"><b id="count">0</b> / 500자</span><button id="submit" type="submit">댓글 등록하기 →</button></div>
+    </form>
+    <p id="status" role="status" aria-live="polite">댓글을 작성한 뒤 등록하기를 눌러주세요.</p>
+    <div class="privacy">개인정보나 민감한 정보는 댓글에 작성하지 말아주세요.</div>
+    <iframe name="comment-frame" id="comment-frame" title="댓글 전송 응답"></iframe>
+  </section>
+</main>
+<script>
+const form=document.getElementById('comment-form');
+const input=document.getElementById('message');
+const count=document.getElementById('count');
+const status=document.getElementById('status');
+const submit=document.getElementById('submit');
+const frame=document.getElementById('comment-frame');
+let pending=false,timer;
+input.addEventListener('input',()=>count.textContent=input.value.length);
+form.addEventListener('submit',e=>{
+ const value=input.value.trim();
+ if(!value){e.preventDefault();status.textContent='댓글 내용을 입력해주세요.';status.className='error';input.focus();return;}
+ if(value.length>500){e.preventDefault();status.textContent='댓글은 500자 이내로 작성해주세요.';status.className='error';return;}
+ if(pending){e.preventDefault();return;}
+ pending=true;submit.disabled=true;submit.textContent='등록 중...';status.textContent='댓글을 전송하고 있습니다.';status.className='';
+ timer=setTimeout(()=>{if(!pending)return;pending=false;submit.disabled=false;submit.textContent='댓글 등록하기 →';status.textContent='응답이 지연되고 있습니다. Google 스프레드시트의 문의 시트에서 저장 여부를 확인해주세요.';status.className='error';},15000);
+});
+frame.addEventListener('load',()=>{
+ if(!pending)return;
+ pending=false;clearTimeout(timer);submit.disabled=false;submit.textContent='댓글 등록하기 →';
+ status.textContent='서버 응답을 받았습니다. 스프레드시트의 문의 시트에서 댓글이 저장됐는지 확인해주세요.';
+ status.className='success';input.value='';count.textContent='0';
+});
+</script>
+</body>
+</html>
